@@ -1,0 +1,62 @@
+services:
+  # |--------------------|
+  # | Serviço Slim (PHP) |
+  # |--------------------|
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gmleads_api
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: gmleads_db
+      DB_USERNAME: admin
+      DB_PASSWORD: secret
+    networks:
+      - app-network
+
+  # |---------------------------------|
+  # | Serviço do Banco de Dados MySQL |
+  # |---------------------------------|
+  db:
+    image: mysql:8.0
+    container_name: gmleads_db
+    ports:
+      - "33066:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gmleads_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: secret
+    volumes:
+      - gmleads_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u$$MYSQL_USER",
+          "-p$$MYSQL_PASSWORD",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  gmdb_data:

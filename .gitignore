@@ -1,0 +1,6 @@
+vendor/
+gmlead.sql
+.env
+gm_lead
+composer.lock
+codebase.md
