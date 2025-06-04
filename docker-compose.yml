@@ -29,7 +29,7 @@ services:
     image: mysql:8.0
     container_name: gmleads_db
     ports:
-      - "33066:3306"
+      - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: gmleads_db
@@ -59,4 +59,4 @@ networks:
     driver: bridge
 
 volumes:
-  gmdb_data:
+  gmleads_data:

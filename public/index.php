@@ -19,10 +19,11 @@ require BASE_PATH.'helpers/functions.php';
 require base_path('app/bootstrap.php');
 
 $app = AppFactory::create();
+$responseFactory = $app->getResponseFactory();
 
-$app->add(new ContentTypeHeadersMiddleware);
-$app->add(new Cors);
 $app->addBodyParsingMiddleware();
+$app->add(new Cors($responseFactory));
+$app->add(new ContentTypeHeadersMiddleware);
 $app->addRoutingMiddleware();
 
 $errorHandler = function (Request $request, Throwable $exception) use ($app) {
@@ -37,6 +38,10 @@ $errorHandler = function (Request $request, Throwable $exception) use ($app) {
     $payload = [
         'error' => $exception->getMessage(),
     ];
+    if (ini_get('display_errors') === '1') { // Add more detail if display_errors is on
+        $payload['exception_type'] = get_class($exception);
+        $payload['trace'] = $exception->getTraceAsString(); // Be careful with exposing traces in prod
+    }
     $response = $app->getResponseFactory()->createResponse();
     $response
         ->getBody()

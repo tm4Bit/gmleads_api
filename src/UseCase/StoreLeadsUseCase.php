@@ -16,7 +16,7 @@ class StoreLeadsUseCase
 
     public function __construct(private Database $db) {}
 
-    public function execute(mixed $requestData): void
+    public function execute(mixed $requestData)
     {
         $leadsToProcess = [];
         $currentLeadDataForErrorLog = null;
@@ -77,15 +77,7 @@ class StoreLeadsUseCase
                 }
 
                 foreach ($leadData as $key => $value) {
-                    if (in_array($key, ['briefing', 'ckreg', 'cf-turnstile-response', 'sub2'])) {
-                        continue;
-                    }
-
-                    if ($key === 'country') {
-                        if (in_array('pais', $targetTableColumns)) {
-                            $dataToInsert['pais'] = $value;
-                        }
-
+                    if (in_array($key, ['country', 'briefing', 'ckreg', 'cf-turnstile-response', 'sub2'])) {
                         continue;
                     }
 
