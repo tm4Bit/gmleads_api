@@ -37,10 +37,12 @@ $errorHandler = function (Request $request, Throwable $exception) use ($app) {
 
     $payload = [
         'error' => $exception->getMessage(),
+        'timestamp' => date('Y-m-d H:i:s'),
     ];
-    if (ini_get('display_errors') === '1') { // Add more detail if display_errors is on
+    if (ini_get('display_errors') === '1') {
         $payload['exception_type'] = get_class($exception);
-        $payload['trace'] = $exception->getTraceAsString(); // Be careful with exposing traces in prod
+        $payload['file'] = $exception->getFile();
+        $payload['line'] = $exception->getLine();
     }
     $response = $app->getResponseFactory()->createResponse();
     $response

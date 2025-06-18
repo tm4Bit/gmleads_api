@@ -15,3 +15,5 @@ translations/ar.json
 translations/eq.json
 translations/pe.json
 translations/co.json
+
+*.zip
