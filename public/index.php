@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Core\Exception\HttpException;
 use Http\Controller\GenerateEventController;
 use Http\Controller\HealthController;
+use Http\Controller\SendLeadsController;
 use Http\Controller\StoreLeadsController;
 use Http\Middleware\ContentTypeHeadersMiddleware;
 use Http\Middleware\Cors;
@@ -61,6 +62,7 @@ $app->group('/api', function (RouteCollectorProxy $group) {
     $group->get('/up', [HealthController::class, 'handle']);
     $group->post('/generate-event/{tableName:[a-zA-Z0-9_]+}', [GenerateEventController::class, 'handle']);
     $group->post('/leads', [StoreLeadsController::class, 'handle']);
+    $group->post('/crm/{tableName:[a-zA-Z0-9_]+}', [SendLeadsController::class, 'handle']);
 });
 
 $app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) {

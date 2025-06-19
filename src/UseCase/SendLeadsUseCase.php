@@ -26,43 +26,57 @@ class SendLeadsUseCase
         ]);
     }
 
-    public function getCountryCode(string $countryNumber): string
+    public function getCountryCode(int $countryNumber): string
     {
         $countryCodes = [
-            '1' => 'BR',
-            '2' => 'AR',
-            '3' => 'CH',
-            '4' => 'CO',
-            '5' => 'PE',
-            '6' => 'EQ',
+            1 => 'BR',
+            2 => 'AR',
+            3 => 'CH',
+            4 => 'CO',
+            5 => 'PE',
+            6 => 'EQ',
         ];
 
         return $countryCodes[$countryNumber] ?? null;
     }
 
-    public function execute(string $eventName)
+    public function execute(string $tableName)
     {
         $eventInfo = $this->db
-            ->queryBuilder('SELECT * FROM briefing WHERE tbl_clientes = :eventName', ['eventName' => $eventName])
+            ->queryBuilder('SELECT * FROM briefing WHERE tbl_clientes = :eventName', ['eventName' => $tableName])
             ->find();
 
         if (! $eventInfo) {
-            throw new HttpNotFoundException("Evento para a tabela '{$eventName}' não encontrado no briefing.");
+            throw new HttpNotFoundException("Evento para a tabela '{$tableName}' não encontrado no briefing.");
         }
 
+        $authResponse = $this->httpClient->post('/api/Token/Auth', [
+            'json' => [
+                'email' => config('crm', 'email'),
+                'password' => config('crm', 'password'),
+            ],
+        ]);
+
+        if ($authResponse->getStatusCode() !== 200) {
+            throw new HttpException('Erro ao obter token de autenticação: '.$authResponse->getReasonPhrase());
+        }
+
+        $authBody = json_decode($authResponse->getBody()->getContents(), true);
+
+        $token = $authBody['token'];
+
         $leads = $this->db
-            ->queryBuilder('SELECT * FROM :tableName', ['tableName' => $eventName])
+            ->queryBuilder("SELECT * FROM $tableName")
             ->findAll();
 
         if (empty($leads)) {
-            throw new HttpNotFoundException("Nenhum lead encontrado na tabela '{$eventName}'.");
+            return ['message' => 'Nenhum lead encontrado para enviar.'];
         }
 
         $crmPayload = [];
         $countryNumber = $eventInfo['pais'];
         $countryCode = $this->getCountryCode($countryNumber);
         foreach ($leads as $lead) {
-            // unset($lead['nome'], $lead['snome'], $lead['doc'], $lead['email'], $lead['tel'], $lead['cel']);
             $crmPayload[] = [
                 'supplier_code' => 'NSC',
                 'source_system' => 'OPIE_NSC_MAN',
@@ -72,26 +86,31 @@ class SendLeadsUseCase
                 'content_type' => 'QUOTE',
                 'make' => 'CHEVROLET',
                 'model' => 'TRACKER',
-                'first_name' => $lead['nome'],
-                'last_name' => $lead['snome'],
-                'customer_id' => $lead['doc'],
-                'email_address' => $lead['email'],
-                'home_phone' => $lead['tel'],
-                'cell_phone' => $lead['cel'],
+                'first_name' => $lead['nome'] ?? null,
+                'last_name' => $lead['snome'] ?? null,
+                'customer_id' => $lead['doc'] ?? null,
+                'email_address' => $lead['email'] ?? null,
+                'home_phone' => $lead['tel'] ?? null,
+                'cell_phone' => $lead['cel'] ?? null,
                 'dealer_code' => 284871,
                 'source' => 'BATCH',
-                'comments' => "$lead",
+                'comments' => json_encode($lead, JSON_UNESCAPED_UNICODE),
             ];
         }
 
         try {
             $response = $this->httpClient->post('api/LeadsSiebel', [
                 'json' => $crmPayload,
+                'headers' => [
+                    'Authorization' => 'Bearer '.$token,
+                ],
             ]);
 
             if ($response->getStatusCode() !== 200) {
                 throw new HttpException('Erro ao enviar leads para o CRM: '.$response->getReasonPhrase());
             }
+
+            return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
             throw new HttpException('Erro ao enviar leads para o CRM: '.$e->getMessage());
         }

@@ -6,6 +6,7 @@ use Core\App;
 use Core\Container;
 use Core\Database;
 use Ovlk\GMLeads\UseCase\GenerateEventUseCase;
+use Ovlk\GMLeads\UseCase\SendLeadsUseCase;
 use Ovlk\GMLeads\UseCase\StoreLeadsUseCase;
 
 $container = new Container;
@@ -28,6 +29,12 @@ $container->bind('Ovlk\GMLeads\UseCase\StoreLeadsUseCase', function () {
     $db = App::resolve(Database::class);
 
     return new StoreLeadsUseCase($db);
+});
+
+$container->bind('Ovlk\GMLeads\UseCase\SendLeadsUseCase', function () {
+    $db = App::resolve(Database::class);
+
+    return new SendLeadsUseCase($db);
 });
 
 App::setContainer($container);
