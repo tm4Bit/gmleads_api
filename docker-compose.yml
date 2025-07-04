@@ -28,12 +28,8 @@ services:
       - ./:/var/www/html
     depends_on:
       - db
-    environment:
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_DATABASE: gmleads_db
-      DB_USERNAME: admin
-      DB_PASSWORD: secret
+    env_file:
+      - .env
     networks:
       - app-network
 
