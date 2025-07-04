@@ -98,9 +98,15 @@ class SendLeadsUseCase
                 throw new HttpException('Erro ao enviar leads para o CRM: '.$response->getReasonPhrase());
             }
 
+            $lastKey = array_key_last($leads) + 1;
+            $this->db->queryBuilder('UPDATE briefing SET crm = :crm WHERE tbl_clientes = :eventName', [
+                'crm' => $lastKey,
+                'eventName' => $tableName,
+            ]);
+
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            throw new HttpException('Erro ao enviar leads para o CRM: '.$e->getMessage());
+            throw new HttpException('Erro ao enviar leads para o CRM: '.$e->getMessage(), $e->getCode());
         }
     }
 }

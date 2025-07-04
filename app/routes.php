@@ -19,7 +19,7 @@ return function ($app) {
         $group->get('/up', [HealthController::class, 'handle']);
         $group->post('/generate-event/{tableName:[a-zA-Z0-9_]+}', [GenerateEventController::class, 'handle']);
         $group->post('/leads', [StoreLeadsController::class, 'handle']);
-        $group->post('/crm/{tableName:[a-zA-Z0-9_]+}', [SendLeadsController::class, 'handle']);
+        $group->get('/crm/{tableName:[a-zA-Z0-9_]+}', [SendLeadsController::class, 'handle']);
     });
 
     $app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) {
