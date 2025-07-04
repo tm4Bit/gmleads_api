@@ -96,7 +96,7 @@ class SendLeadsUseCase
                 ],
             ]);
 
-            $contentReturned = $response->getBody()->getContents();
+            $responseBody = $response->getBody()->getContents();
 
             if ($response->getStatusCode() !== 200) {
                 throw new HttpException('Erro ao enviar leads para o CRM: '.$response->getReasonPhrase());
@@ -118,7 +118,7 @@ class SendLeadsUseCase
                 ]
             ); */
 
-            return json_decode($contentReturned, true);
+            return json_decode($responseBody, true);
         } catch (GuzzleException $e) {
             throw new HttpException('Erro ao enviar leads para o CRM: '.$e->getMessage(), $e->getCode());
         }
