@@ -3,16 +3,10 @@
 declare(strict_types=1);
 
 use Core\Exception\HttpException;
-use Http\Controller\GenerateEventController;
-use Http\Controller\HealthController;
-use Http\Controller\SendLeadsController;
-use Http\Controller\StoreLeadsController;
 use Http\Middleware\ContentTypeHeadersMiddleware;
 use Http\Middleware\Cors;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Slim\Exception\HttpNotFoundException;
 use Slim\Factory\AppFactory;
-use Slim\Routing\RouteCollectorProxy;
 
 const BASE_PATH = __DIR__.'/../';
 require BASE_PATH.'vendor/autoload.php';
@@ -58,15 +52,7 @@ $errorHandler = function (Request $request, Throwable $exception) use ($app) {
 $errorMiddleware = $app->addErrorMiddleware(true, true, true);
 $errorMiddleware->setDefaultErrorHandler($errorHandler);
 
-$app->group('/api', function (RouteCollectorProxy $group) {
-    $group->get('/up', [HealthController::class, 'handle']);
-    $group->post('/generate-event/{tableName:[a-zA-Z0-9_]+}', [GenerateEventController::class, 'handle']);
-    $group->post('/leads', [StoreLeadsController::class, 'handle']);
-    $group->post('/crm/{tableName:[a-zA-Z0-9_]+}', [SendLeadsController::class, 'handle']);
-});
-
-$app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) {
-    throw new HttpNotFoundException($request);
-});
+$routes = require base_path('app/routes.php');
+$routes($app);
 
 $app->run();
