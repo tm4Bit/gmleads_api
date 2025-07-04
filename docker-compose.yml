@@ -1,14 +1,29 @@
 services:
   # |--------------------|
+  # |    Serviço Nginx   |
+  # |--------------------|
+  nginx:
+    image: nginx:latest
+    container_name: gmleads_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+      - db
+    networks:
+      - app-network
+
+  # |--------------------|
   # | Serviço Slim (PHP) |
   # |--------------------|
-  app:
+  php:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: gmleads_api
-    ports:
-      - "8080:80"
     volumes:
       - ./:/var/www/html
     depends_on:
