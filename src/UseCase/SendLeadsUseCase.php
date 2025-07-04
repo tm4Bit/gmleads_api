@@ -12,21 +12,9 @@ use GuzzleHttp\Exception\GuzzleException;
 
 class SendLeadsUseCase
 {
-    private HttpClient $httpClient;
+    public function __construct(private HttpClient $httpClient, private Database $db) {}
 
-    public function __construct(private Database $db)
-    {
-        $base_uri = config('crm', 'endpoint');
-        $this->httpClient = new HttpClient([
-            'base_uri' => $base_uri,
-            'timeout' => 10.0,
-            'headers' => [
-                'Content-Type' => 'application/json',
-            ],
-        ]);
-    }
-
-    public function getCountryCode(int $countryNumber): string
+    private function getCountryCode(int $countryNumber): string
     {
         $countryCodes = [
             1 => 'BR',

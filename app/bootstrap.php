@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Core\App;
 use Core\Container;
 use Core\Database;
+use GuzzleHttp\Client as HttpClient;
 use Ovlk\GMLeads\UseCase\GenerateEventUseCase;
 use Ovlk\GMLeads\UseCase\SendLeadsUseCase;
 use Ovlk\GMLeads\UseCase\StoreLeadsUseCase;
@@ -19,22 +20,35 @@ $container->bind('Core\Database', function () {
     return new Database($db, $username, $password);
 });
 
-$container->bind('Ovlk\GMLeads\UseCase\GenerateEventUseCase', function () {
+$container->bind(HttpClient::class, function () {
+    $base_uri = config('crm', 'endpoint');
+
+    return new HttpClient([
+        'base_uri' => $base_uri,
+        'timeout' => 10.0,
+        'headers' => [
+            'Content-Type' => 'application/json',
+        ],
+    ]);
+});
+
+$container->bind(GenerateEventUseCase::class, function () {
     $db = App::resolve(Database::class);
 
     return new GenerateEventUseCase($db);
 });
 
-$container->bind('Ovlk\GMLeads\UseCase\StoreLeadsUseCase', function () {
+$container->bind(StoreLeadsUseCase::class, function () {
     $db = App::resolve(Database::class);
 
     return new StoreLeadsUseCase($db);
 });
 
-$container->bind('Ovlk\GMLeads\UseCase\SendLeadsUseCase', function () {
+$container->bind(SendLeadsUseCase::class, function () {
     $db = App::resolve(Database::class);
+    $httpClient = App::resolve(HttpClient::class);
 
-    return new SendLeadsUseCase($db);
+    return new SendLeadsUseCase($httpClient, $db);
 });
 
 App::setContainer($container);
