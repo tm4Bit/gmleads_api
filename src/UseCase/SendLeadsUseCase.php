@@ -50,11 +50,13 @@ class SendLeadsUseCase
         }
 
         $authBody = json_decode($authResponse->getBody()->getContents(), true);
-
         $token = $authBody['token'];
+        $lastSentId = $eventInfo['crm'] ?? 0;
 
         $leads = $this->db
-            ->queryBuilder("SELECT * FROM $tableName")
+            ->queryBuilder("SELECT * FROM $tableName WHERE id > :lastSentId", [
+                'lastSentId' => $lastSentId,
+            ])
             ->findAll();
 
         if (empty($leads)) {
@@ -94,17 +96,29 @@ class SendLeadsUseCase
                 ],
             ]);
 
+            $contentReturned = $response->getBody()->getContents();
+
             if ($response->getStatusCode() !== 200) {
                 throw new HttpException('Erro ao enviar leads para o CRM: '.$response->getReasonPhrase());
             }
 
-            $lastKey = array_key_last($leads) + 1;
+            $newLastLeadId = array_key_last($leads) + 1;
             $this->db->queryBuilder('UPDATE briefing SET crm = :crm WHERE tbl_clientes = :eventName', [
-                'crm' => $lastKey,
+                'crm' => $newLastLeadId,
                 'eventName' => $tableName,
             ]);
 
-            return json_decode($response->getBody()->getContents(), true);
+            // NOTE: The table crm doesn't exist yet
+            /* $this->db->queryBuilder(
+                'INSERT INTO crm (evento_id, evento_stop, return, mom) VALUES (:evento_id, :evento_stop, :return, NOW())',
+                [
+                    'evento_id' => $eventInfo['id'],
+                    'evento_stop' => $newLastLeadId,
+                    'return' => $contentReturned,
+                ]
+            ); */
+
+            return json_decode($contentReturned, true);
         } catch (GuzzleException $e) {
             throw new HttpException('Erro ao enviar leads para o CRM: '.$e->getMessage(), $e->getCode());
         }
