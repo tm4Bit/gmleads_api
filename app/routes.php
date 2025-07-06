@@ -23,7 +23,7 @@ return function ($app) {
     });
 
     $app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) {
-        throw new HttpNotFoundException($request);
+        throw new HttpNotFoundException($request, 'No route found!');
     });
 
 };
