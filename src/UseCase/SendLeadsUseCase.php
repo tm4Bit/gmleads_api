@@ -39,12 +39,12 @@ class SendLeadsUseCase
         }
 
         $lastCrmEntry = $this->db
-            ->queryBuilder('SELECT last_lead_id FROM crm WHERE evento_id = :evento_id ORDER BY mom DESC LIMIT 1', [
+            ->queryBuilder('SELECT evento_stop FROM crm WHERE evento_id = :evento_id ORDER BY mom DESC LIMIT 1', [
                 'evento_id' => $eventInfo['id'],
             ])
             ->find();
 
-        $lastSentId = $lastCrmEntry ? $lastCrmEntry['last_lead_id'] : 0;
+        $lastSentId = $lastCrmEntry ? $lastCrmEntry['evento_stop'] : 0;
 
         $authResponse = $this->httpClient->post('/api/Token/Auth', [
             'json' => [
@@ -116,11 +116,10 @@ class SendLeadsUseCase
             $newLastLeadId = $lastLeadInBatch['id'];
 
             $this->db->queryBuilder(
-                'INSERT INTO crm (evento_id, lead_id, last_lead_id, `return`, mom) VALUES (:evento_id, :lead_id, :last_lead_id, :return, NOW())',
+                'INSERT INTO crm (evento_id, evento_stop, `return`, mom) VALUES (:evento_id, :evento_stop, :return, NOW())',
                 [
                     'evento_id' => $eventInfo['id'],
-                    'lead_id' => $newLastLeadId,
-                    'last_lead_id' => $newLastLeadId,
+                    'evento_stop' => $newLastLeadId,
                     'return' => $responseBody,
                 ]
             );
