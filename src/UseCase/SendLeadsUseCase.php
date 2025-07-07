@@ -92,7 +92,7 @@ class SendLeadsUseCase
                 'email_address' => $lead['email'] ?? null,
                 'home_phone' => $lead['tel'] ?? null,
                 'cell_phone' => $lead['cel'] ?? null,
-                'dealer_code' => $lead['dealer_code'] ?? null,
+                'dealer_code' => (int) $lead['dealer_code'] ?? null,
                 'source' => 'BATCH', // NOTE: HARDCODED FIELD
                 'comments' => "$commentField", // e.g., 'Lead enviado via OPIE'
             ];
