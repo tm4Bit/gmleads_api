@@ -16,7 +16,7 @@ function dd($value)
     exit();
 }
 
-function config(string $configFile, string|array $key): mixed
+function config(string $configFile, string|array|null $key): mixed
 {
     $configPath = BASE_PATH.'config/'.$configFile.'.php';
 
@@ -25,6 +25,10 @@ function config(string $configFile, string|array $key): mixed
     }
 
     $config = require $configPath;
+
+    if ($key === null) {
+        return $config;
+    }
 
     if (is_string($key)) {
         if (! array_key_exists($key, $config)) {

@@ -17,5 +17,6 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY . .
 
-RUN chown -R www-data:www-data /var/www/html/gm_lead \
-    && chmod -R 777 /var/www/html/gm_lead
+RUN mkdir -p /var/www/logs \
+    && chown -R www-data:www-data /var/www/logs \
+    && chmod -R 775 /var/www/logs \
