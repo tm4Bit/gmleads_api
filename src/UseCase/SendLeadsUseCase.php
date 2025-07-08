@@ -14,20 +14,6 @@ class SendLeadsUseCase
 {
     public function __construct(private HttpClient $httpClient, private Database $db) {}
 
-    private function getCountryCode(int $countryNumber): ?string
-    {
-        $countryCodes = [
-            1 => 'BR',
-            2 => 'AR',
-            3 => 'CH',
-            4 => 'CO',
-            5 => 'PE',
-            6 => 'EQ',
-        ];
-
-        return $countryCodes[$countryNumber] ?? null;
-    }
-
     public function execute(string $tableName): ?array
     {
         $eventInfo = $this->db
@@ -70,31 +56,51 @@ class SendLeadsUseCase
             return ['message' => 'Nenhum lead novo para enviar.'];
         }
 
-        $crmPayload = [];
-        $countryNumber = $eventInfo['pais'];
-        $countryCode = $this->getCountryCode($countryNumber);
-        $carModelField = $countryCode !== null ? 'carro_gm_'.strtolower($countryCode) : null;
+        $countryInfo = $this->db->queryBuilder('SELECT * FROM c_paises WHERE id = :countryId', [
+            'countryId' => $eventInfo['pais'],
+        ])->find();
 
+        $carModelField = 'carro_gm_'.strtolower($countryInfo['country_code']);
+
+        $crmPayload = [];
         foreach ($leads as $lead) {
-            $commentField = json_encode($lead, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $dedicatedKeys = ['nome', 'snome', 'doc', 'email', 'tel', 'cel', 'dealer_code', 'make'];
+
+            if (array_key_exists($carModelField, $lead)) {
+                $dedicatedKeys[] = $carModelField;
+            }
+
+            $extraData = array_diff_key($lead, array_flip($dedicatedKeys));
+
+            $commentsParts = [];
+
+            foreach ($extraData as $key => $value) {
+                if ($value === null || $value === '') {
+                    continue;
+                }
+                $commentsParts[] = "{$key}: {$value}";
+            }
+
+            $commentString = implode('|', $commentsParts);
+
             $crmPayload[] = [
                 'supplier_code' => 'NSC', // NOTE: HARDCODED FIELD
                 'source_system' => 'OPIE_NSC_MAN', // NOTE: HARDCODED FIELD
-                'market_code' => 'GM'.$countryCode, // GMBR, GMAR, GMCO ...
-                'country_code' => $countryCode, // BR, AR, CO
+                'market_code' => $countryInfo['market_code'], // GMBR, GMAR, GMCO ...
+                'country_code' => $countryInfo['country_code'], // BR, AR, CO
                 'action_id' => $eventInfo['cod_evento'] ?? null,
                 'content_type' => $eventInfo['content_type'] ?? null,
-                'make' => $lead['carro_marca'] ?? null, // e.g., 'chevrolet'
+                'make' => $lead['make'] ?? null, // e.g., 'chevrolet'
                 'model' => $lead[$carModelField] ?? null, // e.g., 'onix', 'tracker'
                 'first_name' => $lead['nome'] ?? null,
                 'last_name' => $lead['snome'] ?? null,
                 'customer_id' => $lead['doc'] ?? null,
                 'email_address' => $lead['email'] ?? null,
-                'home_phone' => $lead['tel'] ?? null,
-                'cell_phone' => $lead['cel'] ?? null,
+                'home_phone' => array_key_exists('tel', $lead) ? $this->formatCel($lead['tel'], $countryInfo['ddi']) : null,
+                'cell_phone' => array_key_exists('cel', $lead) ? $this->formatCel($lead['cel'], $countryInfo['ddi']) : null,
                 'dealer_code' => (int) $lead['dealer_code'] ?? null,
                 'source' => 'BATCH', // NOTE: HARDCODED FIELD
-                'comments' => "$commentField", // e.g., 'Lead enviado via OPIE'
+                'comments' => $commentString, // e.g., "instagram: @fulano | pet: sim"
             ];
         }
 
@@ -126,7 +132,23 @@ class SendLeadsUseCase
 
             return json_decode($responseBody, true);
         } catch (GuzzleException $e) {
+            $this->db->queryBuilder(
+                'INSERT INTO crm (evento_id, evento_stop, `return`, mom) VALUES (:evento_id, :evento_stop, :return, NOW())',
+                [
+                    'evento_id' => $eventInfo['id'],
+                    'evento_stop' => $lastSentId,
+                    'return' => $e->getMessage(),
+                ]
+            );
             throw new HttpException('Erro ao enviar leads para o CRM: '.$e->getMessage(), $e->getCode());
         }
+    }
+
+    public function formatCel(?string $cel, string $ddi): ?string
+    {
+        $cel = preg_replace('/\D/', '', $cel); // Remove non-digit characters
+        $cel = preg_replace('/^'.$ddi.'/', '', $cel); // Remove DDI if present
+
+        return $ddi.substr($cel, 0, 2).substr($cel, 2);
     }
 }
