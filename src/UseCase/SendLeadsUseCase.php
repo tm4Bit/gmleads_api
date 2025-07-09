@@ -77,6 +77,8 @@ class SendLeadsUseCase
             foreach ($extraData as $key => $value) {
                 if ($value === null || $value === '') {
                     continue;
+                } elseif ($key === 'k' || $key === 'id') {
+                    continue;
                 }
                 $commentsParts[] = "{$key}: {$value}";
             }
