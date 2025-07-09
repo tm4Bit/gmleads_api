@@ -9,10 +9,11 @@ use Core\Exception\HttpException;
 use Core\Exception\HttpNotFoundException;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\GuzzleException;
+use Psr\Log\LoggerInterface;
 
 class SendLeadsUseCase
 {
-    public function __construct(private HttpClient $httpClient, private Database $db) {}
+    public function __construct(private HttpClient $httpClient, private Database $db, private LoggerInterface $logger) {}
 
     public function execute(string $tableName): ?array
     {
@@ -32,14 +33,29 @@ class SendLeadsUseCase
 
         $lastSentId = $lastCrmEntry ? $lastCrmEntry['evento_stop'] : 0;
 
+        $email = config('crm', 'email');
+        $password = config('crm', 'password');
+
+        if (empty($email) || empty($password)) {
+            $this->logger->error('Configuração do CRM não está completa. Verifique as credenciais.', [
+                'email' => $email,
+                'password' => $password,
+            ]);
+            throw new HttpException('Configuração do CRM não está completa. Verifique as credenciais.');
+        }
+
         $authResponse = $this->httpClient->post('/api/Token/Auth', [
             'json' => [
-                'email' => config('crm', 'email'),
-                'password' => config('crm', 'password'),
+                'email' => $email,
+                'password' => $password,
             ],
         ]);
 
         if ($authResponse->getStatusCode() !== 200) {
+            $this->logger->error('Erro ao obter token de autenticação do CRM.', [
+                'reason' => $authResponse->getReasonPhrase(),
+                'body' => $authResponse->getBody()->getContents(),
+            ], ['email' => $email, 'password' => $password]);
             throw new HttpException('Erro ao obter token de autenticação: '.$authResponse->getReasonPhrase());
         }
 
@@ -142,6 +158,12 @@ class SendLeadsUseCase
                     'return' => $e->getMessage(),
                 ]
             );
+            $this->logger->error('Erro ao enviar leads para o CRM.', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], [$e->getTrace()]);
             throw new HttpException('Erro ao enviar leads para o CRM: '.$e->getMessage(), $e->getCode());
         }
     }

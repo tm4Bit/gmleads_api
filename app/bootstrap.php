@@ -53,8 +53,9 @@ $container->bind(StoreLeadsUseCase::class, function () {
 $container->bind(SendLeadsUseCase::class, function () {
     $db = App::resolve(Database::class);
     $httpClient = App::resolve(HttpClient::class);
+    $logger = App::resolve(LoggerInterface::class);
 
-    return new SendLeadsUseCase($httpClient, $db);
+    return new SendLeadsUseCase($httpClient, $db, $logger);
 });
 
 App::setContainer($container);
