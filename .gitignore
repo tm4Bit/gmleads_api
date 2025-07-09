@@ -1,4 +1,6 @@
 vendor/
+logs/
+.aidigestignore
 gmlead.sql
 .env
 gm_lead
