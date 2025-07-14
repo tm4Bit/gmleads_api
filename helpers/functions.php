@@ -7,52 +7,6 @@ function base_path(string $path): string
     return BASE_PATH.$path;
 }
 
-function dd($value)
-{
-    $styles = 'background-color: black; color: white; font-size: 14px; font-weight: bold; padding: 8px;';
-    echo '<pre style="'.$styles.'">';
-    var_dump($value);
-    echo '</pre>';
-    exit();
-}
-
-function config(string $configFile, string|array|null $key): mixed
-{
-    $configPath = BASE_PATH.'config/'.$configFile.'.php';
-
-    if (! file_exists($configPath)) {
-        throw new Exception("Configuration file {$configFile} not found.");
-    }
-
-    $config = require $configPath;
-
-    if ($key === null) {
-        return $config;
-    }
-
-    if (is_string($key)) {
-        if (! array_key_exists($key, $config)) {
-            throw new Exception("Key '{$key}' not found in config file '{$configFile}'.");
-        }
-
-        return $config[$key];
-    }
-
-    if (is_array($key)) {
-        $value = $config;
-        foreach ($key as $k) {
-            if (! is_array($value) || ! array_key_exists($k, $value)) {
-                throw new Exception("Key path '".implode(' -> ', $key)."' not found in config file '{$configFile}'.");
-            }
-            $value = $value[$k];
-        }
-
-        return $value;
-    }
-
-    throw new Exception('Invalid key type provided.');
-}
-
 function render(string $template, array $attributes = []): string
 {
     extract($attributes); // Extrai as variáveis do array para o escopo local

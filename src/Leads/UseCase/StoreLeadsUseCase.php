@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ovlk\GMLeads\UseCase;
+namespace Ovlk\GMLeads\Events\UseCase;
 
 use Core\Database;
 use Core\Exception\HttpException;

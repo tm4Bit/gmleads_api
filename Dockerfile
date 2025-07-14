@@ -1,7 +1,5 @@
 FROM php:8.3-fpm
 
-ENV APP_ENV=development
-
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     zlib1g-dev \

@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ovlk\GMLeads\UseCase;
+namespace Ovlk\GMLeads\Events\UseCase;
 
 use Core\Database;
 use Core\Exception\HttpException;
 use Core\Exception\HttpNotFoundException;
+use Core\Facade\Config;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
@@ -33,8 +34,8 @@ class SendLeadsUseCase
 
         $lastSentId = $lastCrmEntry ? $lastCrmEntry['evento_stop'] : 0;
 
-        $email = config('crm', 'email');
-        $password = config('crm', 'password');
+        $email = Config::get('crm.email');
+        $password = Config::get('crm.password');
 
         if (empty($email) || empty($password)) {
             $this->logger->error('Configuração do CRM não está completa. Verifique as credenciais.', [

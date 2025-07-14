@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ovlk\GMLeads\UseCase;
+namespace Ovlk\GMLeads\Events\UseCase;
 
 use Core\Database;
 use Core\Exception\HttpException;
 use Core\Exception\HttpNotFoundException;
+use Core\Facade\Config;
 
 class GenerateEventUseCase
 {
@@ -33,7 +34,8 @@ class GenerateEventUseCase
             throw new HttpNotFoundException("Idioma não encontrado: {$eventLangId}");
         }
 
-        $lang = config('lang', $langInfo['pais']);
+        $lang = Config::get('lang.'.$langInfo['pais']);
+		dd($lang);
         $country = $lang === 'pt-br' ? 'br' : $lang;
 
         // Buscar Colunas na tabela do evento

@@ -26,7 +26,8 @@ class HttpException extends Exception
         ?Throwable $previous = null
     ) {
         $this->httpStatusCode = $httpStatusCode;
-        parent::__construct($message, $code, $previous);
+        // Passa o código HTTP para o construtor pai para que getCode() o retorne.
+        parent::__construct($message, $httpStatusCode, $previous);
     }
 
     public function getHttpStatusCode(): int

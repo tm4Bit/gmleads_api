@@ -2,57 +2,59 @@
 
 declare(strict_types=1);
 
-use Core\Exception\HttpException;
-use Http\Middleware\ContentTypeHeadersMiddleware;
-use Http\Middleware\Cors;
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Core\Facade\Config;
+use Core\Handlers\HttpErrorHandler;
+use Core\Handlers\ShutdownHandler;
+use Core\ResponseEmitter\ResponseEmitter;
+use DI\ContainerBuilder;
 use Slim\Factory\AppFactory;
+use Slim\Factory\ServerRequestCreatorFactory;
 
 const BASE_PATH = __DIR__.'/../';
 require BASE_PATH.'vendor/autoload.php';
 require BASE_PATH.'helpers/functions.php';
-require base_path('app/bootstrap.php');
 
+$container = new ContainerBuilder;
+
+$bootstrap = require base_path('app/bootstrap.php');
+$bootstrap($container);
+
+$container = $container->build();
+
+AppFactory::setContainer($container);
 $app = AppFactory::create();
 $responseFactory = $app->getResponseFactory();
+$callableResolver = $app->getCallableResolver();
 
-$app->addBodyParsingMiddleware();
-$app->add(new Cors($responseFactory));
-$app->add(new ContentTypeHeadersMiddleware);
-$app->addRoutingMiddleware();
-
-$errorHandler = function (Request $request, Throwable $exception) use ($app) {
-    if ($exception instanceof HttpException) {
-        $statusCode = $exception->getHttpStatusCode();
-    } elseif ($exception instanceof PDOException) {
-        $statusCode = 500;
-    } else {
-        $statusCode = 500;
-    }
-
-    $payload = [
-        'error' => $exception->getMessage(),
-        'timestamp' => date('Y-m-d H:i:s'),
-    ];
-    if (ini_get('display_errors') === '1') {
-        $payload['exception_type'] = get_class($exception);
-        $payload['file'] = $exception->getFile();
-        $payload['line'] = $exception->getLine();
-    }
-    $response = $app->getResponseFactory()->createResponse();
-    $response
-        ->getBody()
-        ->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
-
-    return $response
-        ->withHeader('Content-Type', 'application/json')
-        ->withStatus($statusCode);
-};
-
-$errorMiddleware = $app->addErrorMiddleware(true, true, true);
-$errorMiddleware->setDefaultErrorHandler($errorHandler);
+$middleware = require base_path('app/middleware.php');
+$middleware($app);
 
 $routes = require base_path('app/routes.php');
 $routes($app);
 
-$app->run();
+$displayErrorDetails = (bool) Config::get('middleware.displayErrorDetails');
+$logErrors = (bool) Config::get('middleware.logErrors');
+$logErrorDetails = (bool) Config::get('middleware.logErrorDetails');
+
+// Create Request object from globals
+$serverRequestCreator = ServerRequestCreatorFactory::create();
+$request = $serverRequestCreator->createServerRequestFromGlobals();
+
+$errorHandler = new HttpErrorHandler($callableResolver, $responseFactory);
+
+// Create Shutdown Handler
+$shutdownHandler = new ShutdownHandler($request, $errorHandler, $displayErrorDetails);
+register_shutdown_function($shutdownHandler);
+
+// Add built-in middleware
+$app->addBodyParsingMiddleware();
+$app->addRoutingMiddleware();
+
+// Add Error Middleware
+$errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, $logErrors, $logErrorDetails);
+$errorMiddleware->setDefaultErrorHandler($errorHandler);
+
+// Run App & Emit Response
+$response = $app->handle($request);
+$responseEmitter = new ResponseEmitter;
+$responseEmitter->emit($response);

@@ -5,19 +5,26 @@ declare(strict_types=1);
 namespace Core;
 
 use Core\Exception\HttpNotFoundException;
+use Core\Facade\Config;
 use PDO;
 use PDOException;
 
 class Database
 {
+    /**
+     * @var PDO
+     */
     private $connection;
 
     private $statement;
 
-    public function __construct($config, $username = 'root', $password = '')
+    public function __construct()
     {
+        $db = Config::get('database.db');
+        $username = Config::get('database.username');
+        $password = Config::get('database.password');
         try {
-            $dsn = 'mysql:'.http_build_query($config, '', ';');
+            $dsn = 'mysql:'.http_build_query($db, '', ';');
             $this->connection = new PDO($dsn, $username, $password, [
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);

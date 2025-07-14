@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Http\Controller\GenerateEventController;
-use Http\Controller\HealthController;
-use Http\Controller\SendLeadsController;
-use Http\Controller\StoreLeadsController;
+use Ovlk\GMLeads\Events\Http\Controller\GenerateEventController;
+use Ovlk\GMLeads\Events\Http\Controller\SendLeadsController;
+use Ovlk\GMLeads\Events\Http\Controller\StoreLeadsController;
+use Ovlk\GMLeads\HealthCheckController;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Routing\RouteCollectorProxy;
 
@@ -16,10 +16,10 @@ return function ($app) {
     });
 
     $app->group('/api', function (RouteCollectorProxy $group) {
-        $group->get('/up', [HealthController::class, 'handle']);
-        $group->post('/generate-event/{tableName:[a-zA-Z0-9_]+}', [GenerateEventController::class, 'handle']);
-        $group->post('/leads', [StoreLeadsController::class, 'handle']);
-        $group->get('/crm/{tableName:[a-zA-Z0-9_]+}', [SendLeadsController::class, 'handle']);
+        $group->get('/up', HealthCheckController::class);
+        $group->post('/generate-event/{tableName:[a-zA-Z0-9_]+}', GenerateEventController::class);
+        $group->post('/leads', StoreLeadsController::class);
+        $group->get('/crm/{tableName:[a-zA-Z0-9_]+}', SendLeadsController::class);
     });
 
     $app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) {
