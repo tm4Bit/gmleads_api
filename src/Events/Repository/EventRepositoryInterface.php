@@ -37,4 +37,12 @@ interface EventRepositoryInterface
      * @return array Retorna a lista de colunas.
      */
     public function getTableColumns(string $tableName): array;
+
+    /**
+     * Busca o template HTML de um evento.
+     *
+     * @param  string  $eventType  O tipo de evento.
+     * @return string Retorna o template HTML.
+     */
+    public function getHtmlTemplate(string $eventType): string;
 }

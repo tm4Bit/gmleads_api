@@ -23,6 +23,7 @@
     extensions = [
       "bmewburn.vscode-intelephense-client"
       "rangav.vscode-thunder-client"
+      "pkief.material-icon-theme"
     ];
 
     # Enable previews

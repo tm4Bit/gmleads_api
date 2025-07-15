@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ovlk\GMLeads\Leads\Services\Crm;
 
+use Core\Facade\Config;
 use GuzzleHttp\Client as HttpClient;
 
 class CrmApiClient implements CrmApiClientInterface
@@ -17,6 +18,7 @@ class CrmApiClient implements CrmApiClientInterface
             'headers' => [
                 'Authorization' => 'Bearer '.$token,
             ],
+            'base_uri' => Config::get('crm.endpoint')
         ]);
 
         return $response->getBody()->getContents();
