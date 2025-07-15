@@ -8,12 +8,11 @@ use Exception;
 
 final class ConfigLoader implements ConfigInterface
 {
-	
-	/**
+    /**
      * @var array Cache para armazenar as configurações já carregadas.
      */
-	private array $loadedConfigs = [];
-	
+    private array $loadedConfigs = [];
+
     /**
      * The main public method to get a configuration value.
      *

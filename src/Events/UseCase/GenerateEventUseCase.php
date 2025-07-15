@@ -35,7 +35,7 @@ class GenerateEventUseCase
         }
 
         $lang = Config::get('lang.'.$langInfo['pais']);
-		dd($lang);
+        dd($lang);
         $country = $lang === 'pt-br' ? 'br' : $lang;
 
         // Buscar Colunas na tabela do evento

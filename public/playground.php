@@ -10,6 +10,6 @@ require base_path('app/bootstrap.php');
 echo '<h1>Hello, GM Lead API!</h1>';
 echo '<p>This is a playground for testing PHP code</p>';
 
-$value = Config::get('middleware');
+$value = Config::get('crm.defaults');
 
 dd($value);

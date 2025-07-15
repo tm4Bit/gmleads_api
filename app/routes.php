@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use Ovlk\GMLeads\Events\Http\Controller\GenerateEventController;
-use Ovlk\GMLeads\Events\Http\Controller\SendLeadsController;
-use Ovlk\GMLeads\Events\Http\Controller\StoreLeadsController;
-use Ovlk\GMLeads\HealthCheckController;
+use Ovlk\GMLeads\HealthCheck\HealthCheckController;
+use Ovlk\GMLeads\Leads\Http\Controller\SendLeadsController;
+use Ovlk\GMLeads\Leads\Http\Controller\StoreLeadsController;
 use Slim\Exception\HttpNotFoundException;
 use Slim\Routing\RouteCollectorProxy;
 

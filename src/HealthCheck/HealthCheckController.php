@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ovlk\GMLeads;
+namespace Ovlk\GMLeads\HealthCheck;
 
 use Core\Http\Controller\Controller;
 use Psr\Http\Message\ResponseInterface;
@@ -17,13 +17,14 @@ class HealthCheckController extends Controller
 
     public function handle(): ResponseInterface
     {
-        $fuso = $this->healthCheckUseCase->execute();
+        $timezone = $this->healthCheckUseCase->execute();
 
-        $this->logger->info('Verificação de saúde bem-sucedida.', [$fuso]);
+        $this->logger->info('Verificação de saúde bem-sucedida.', [$timezone]);
 
         return $this->jsonResponse([
             'status' => 'ON',
             'message' => 'Serviço ativo',
+            'timezone' => $timezone,
         ]);
     }
 }

@@ -2,16 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ovlk\GMLeads\Leads\Domain\Repository;
+namespace Ovlk\GMLeads\Leads\Repository;
 
-use Core\Repository\Repository; // Mude o namespace se você criou a pasta.
-use Ovlk\GMLeads\Leads\Repository\LeadRepositoryInterface;
+use Core\Database\Repository\Repository;
 
 class LeadRepository extends Repository implements LeadRepositoryInterface
 {
-    // O construtor é herdado, então não precisamos redeclará-lo
-    // a menos que queiramos adicionar mais dependências.
-
     public function findLastSentLeadId(int $eventId): int
     {
         $stmt = $this->query(
@@ -25,12 +21,11 @@ class LeadRepository extends Repository implements LeadRepositoryInterface
 
     public function findUnsentLeads(string $tableName, int $lastSentId): array
     {
-        // O método query retorna o PDOStatement
         $stmt = $this->query(
             "SELECT * FROM `$tableName` WHERE id > :lastSentId ORDER BY id ASC",
             ['lastSentId' => $lastSentId]
         );
-        // Agora você chama o fetchAll() no statement retornado
+
         return $stmt->fetchAll();
     }
 
@@ -38,11 +33,11 @@ class LeadRepository extends Repository implements LeadRepositoryInterface
     {
         $insertColumns = array_keys($leadData);
         $placeholders = array_map(fn ($col) => ":$col", $insertColumns);
-        $columnsSql = '`' . implode('`, `', $insertColumns) . '`';
+        $columnsSql = '`'.implode('`, `', $insertColumns).'`';
         $placeholdersSql = implode(', ', $placeholders);
 
         $sql = "INSERT INTO `$tableName` ({$columnsSql}) VALUES ({$placeholdersSql})";
-        
+
         $this->query($sql, array_combine($placeholders, array_values($leadData)));
     }
 
@@ -54,7 +49,7 @@ class LeadRepository extends Repository implements LeadRepositoryInterface
             'evento_stop' => $lastLeadId,
             'return' => $responseMessage,
         ];
-        
+
         $this->query($sql, $params);
     }
 }

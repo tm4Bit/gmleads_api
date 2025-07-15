@@ -2,178 +2,64 @@
 
 declare(strict_types=1);
 
-namespace Ovlk\GMLeads\Events\UseCase;
+namespace Ovlk\GMLeads\Leads\UseCase;
 
-use Core\Database;
 use Core\Exception\HttpException;
 use Core\Exception\HttpNotFoundException;
-use Core\Facade\Config;
-use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\GuzzleException;
+use Ovlk\GMLeads\Events\Repository\EventRepositoryInterface;
+use Ovlk\GMLeads\Leads\Repository\LeadRepositoryInterface;
+use Ovlk\GMLeads\Leads\Services\Crm\CrmApiClientInterface;
+use Ovlk\GMLeads\Leads\Services\Crm\CrmAuthenticatorInterface;
+use Ovlk\GMLeads\Leads\Services\Crm\LeadToCrmPayloadMapperInterface;
 use Psr\Log\LoggerInterface;
 
 class SendLeadsUseCase
 {
-    public function __construct(private HttpClient $httpClient, private Database $db, private LoggerInterface $logger) {}
+    public function __construct(
+        private LoggerInterface $logger,
+        private EventRepositoryInterface $eventRepository,
+        private LeadRepositoryInterface $leadRepository,
+        private CrmAuthenticatorInterface $crmAuthenticator,
+        private LeadToCrmPayloadMapperInterface $payloadMapper,
+        private CrmApiClientInterface $crmApiClient
+    ) {}
 
-    public function execute(string $tableName): ?array
+    public function execute(string $tableName): array
     {
-        $eventInfo = $this->db
-            ->queryBuilder('SELECT * FROM briefing WHERE tbl_clientes = :eventName', ['eventName' => $tableName])
-            ->find();
-
+        $eventInfo = $this->eventRepository->findByTableName($tableName);
         if (! $eventInfo) {
             throw new HttpNotFoundException("Evento para a tabela '{$tableName}' não encontrado no briefing.");
         }
 
-        $lastCrmEntry = $this->db
-            ->queryBuilder('SELECT evento_stop FROM crm WHERE evento_id = :evento_id ORDER BY mom DESC LIMIT 1', [
-                'evento_id' => $eventInfo['id'],
-            ])
-            ->find();
-
-        $lastSentId = $lastCrmEntry ? $lastCrmEntry['evento_stop'] : 0;
-
-        $email = Config::get('crm.email');
-        $password = Config::get('crm.password');
-
-        if (empty($email) || empty($password)) {
-            $this->logger->error('Configuração do CRM não está completa. Verifique as credenciais.', [
-                'email' => $email,
-                'password' => $password,
-            ]);
-            throw new HttpException('Configuração do CRM não está completa. Verifique as credenciais.');
-        }
-
-        $authResponse = $this->httpClient->post('/api/Token/Auth', [
-            'json' => [
-                'email' => $email,
-                'password' => $password,
-            ],
-        ]);
-
-        if ($authResponse->getStatusCode() !== 200) {
-            $this->logger->error('Erro ao obter token de autenticação do CRM.', [
-                'reason' => $authResponse->getReasonPhrase(),
-                'body' => $authResponse->getBody()->getContents(),
-            ], ['email' => $email, 'password' => $password]);
-            throw new HttpException('Erro ao obter token de autenticação: '.$authResponse->getReasonPhrase());
-        }
-
-        $authBody = json_decode($authResponse->getBody()->getContents(), true);
-        $token = $authBody['token'];
-
-        $leads = $this->db
-            ->queryBuilder("SELECT * FROM `$tableName` WHERE id > :lastSentId ORDER BY id ASC", [
-                'lastSentId' => $lastSentId,
-            ])
-            ->findAll();
+        $lastSentId = $this->leadRepository->findLastSentLeadId((int) $eventInfo['id']);
+        $leads = $this->leadRepository->findUnsentLeads($tableName, $lastSentId);
 
         if (empty($leads)) {
             return ['message' => 'Nenhum lead novo para enviar.'];
         }
 
-        $countryInfo = $this->db->queryBuilder('SELECT * FROM c_paises WHERE id = :countryId', [
-            'countryId' => $eventInfo['pais'],
-        ])->find();
+        $token = $this->crmAuthenticator->getAuthToken();
 
-        $carModelField = 'carro_gm_'.strtolower($countryInfo['country_code']);
+        $countryInfo = $this->eventRepository->findCountryInfo((int) $eventInfo['pais']);
+        $crmPayload = $this->payloadMapper->map($leads, $eventInfo, $countryInfo);
 
-        $crmPayload = [];
-        foreach ($leads as $lead) {
-            $dedicatedKeys = ['nome', 'snome', 'doc', 'email', 'tel', 'cel', 'dealer_code', 'make'];
-
-            if (array_key_exists($carModelField, $lead)) {
-                $dedicatedKeys[] = $carModelField;
-            }
-
-            $extraData = array_diff_key($lead, array_flip($dedicatedKeys));
-
-            $commentsParts = [];
-
-            foreach ($extraData as $key => $value) {
-                if ($value === null || $value === '') {
-                    continue;
-                } elseif ($key === 'k' || $key === 'id') {
-                    continue;
-                }
-                $commentsParts[] = "{$key}: {$value}";
-            }
-
-            $commentString = implode('|', $commentsParts);
-
-            $crmPayload[] = [
-                'supplier_code' => 'NSC', // NOTE: HARDCODED FIELD
-                'source_system' => 'OPIE_NSC_MAN', // NOTE: HARDCODED FIELD
-                'market_code' => $countryInfo['market_code'], // GMBR, GMAR, GMCO ...
-                'country_code' => $countryInfo['country_code'], // BR, AR, CO
-                'action_id' => $eventInfo['cod_evento'] ?? null,
-                'content_type' => $eventInfo['content_type'] ?? null,
-                'make' => $lead['make'] ?? null, // e.g., 'chevrolet'
-                'model' => $lead[$carModelField] ?? null, // e.g., 'onix', 'tracker'
-                'first_name' => $lead['nome'] ?? null,
-                'last_name' => $lead['snome'] ?? null,
-                'customer_id' => $lead['doc'] ?? null,
-                'email_address' => $lead['email'] ?? null,
-                'home_phone' => array_key_exists('tel', $lead) ? $this->formatCel($lead['tel'], $countryInfo['ddi']) : null,
-                'cell_phone' => array_key_exists('cel', $lead) ? $this->formatCel($lead['cel'], $countryInfo['ddi']) : null,
-                'dealer_code' => (int) $lead['dealer_code'] ?? null,
-                'source' => 'BATCH', // NOTE: HARDCODED FIELD
-                'comments' => $commentString, // e.g., "instagram: @fulano | pet: sim"
-            ];
-        }
+        $newLastLeadId = end($leads)['id'];
 
         try {
-            $response = $this->httpClient->post('api/LeadsSiebel', [
-                'json' => $crmPayload,
-                'headers' => [
-                    'Authorization' => 'Bearer '.$token,
-                ],
-            ]);
+            $responseBody = $this->crmApiClient->sendLeads($crmPayload, $token);
 
-            $responseBody = $response->getBody()->getContents();
+            $this->leadRepository->logCrmSubmission((int) $eventInfo['id'], $newLastLeadId, 'Success: '.$responseBody);
 
-            if ($response->getStatusCode() !== 200) {
-                throw new HttpException('Erro ao enviar leads para o CRM: '.$response->getReasonPhrase());
-            }
+            $this->logger->info("Lote de leads para '{$tableName}' enviado com sucesso.");
 
-            $lastLeadInBatch = end($leads);
-            $newLastLeadId = $lastLeadInBatch['id'];
+            return json_decode($responseBody, true) ?? ['response' => $responseBody];
 
-            $this->db->queryBuilder(
-                'INSERT INTO crm (evento_id, evento_stop, `return`, mom) VALUES (:evento_id, :evento_stop, :return, NOW())',
-                [
-                    'evento_id' => $eventInfo['id'],
-                    'evento_stop' => $newLastLeadId,
-                    'return' => $responseBody,
-                ]
-            );
-
-            return json_decode($responseBody, true);
         } catch (GuzzleException $e) {
-            $this->db->queryBuilder(
-                'INSERT INTO crm (evento_id, evento_stop, `return`, mom) VALUES (:evento_id, :evento_stop, :return, NOW())',
-                [
-                    'evento_id' => $eventInfo['id'],
-                    'evento_stop' => $lastSentId,
-                    'return' => $e->getMessage(),
-                ]
-            );
-            $this->logger->error('Erro ao enviar leads para o CRM.', [
-                'error' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ], [$e->getTrace()]);
+            $this->leadRepository->logCrmSubmission((int) $eventInfo['id'], $lastSentId, $e->getMessage());
+
+            $this->logger->error('Erro ao enviar leads para o CRM.', ['error' => $e->getMessage()]);
             throw new HttpException('Erro ao enviar leads para o CRM: '.$e->getMessage(), $e->getCode());
         }
-    }
-
-    public function formatCel(?string $cel, string $ddi): ?string
-    {
-        $cel = preg_replace('/\D/', '', $cel); // Remove non-digit characters
-        $cel = preg_replace('/^'.$ddi.'/', '', $cel); // Remove DDI if present
-
-        return $ddi.substr($cel, 0, 2).substr($cel, 2);
     }
 }

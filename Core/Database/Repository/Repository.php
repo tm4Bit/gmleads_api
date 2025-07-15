@@ -2,21 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Core\Repository;
+namespace Core\Database\Repository;
 
-use Core\Database;
+use Core\Database\Connection;
 use PDO;
 use PDOStatement;
 
-/**
- * Classe base para todos os repositórios.
- * Contém a lógica de transação e execução de queries.
- */
 abstract class Repository
 {
     protected PDO $pdo;
 
-    public function __construct(Database $database)
+    public function __construct(Connection $database)
     {
         $this->pdo = $database->getConnection();
     }
@@ -24,14 +20,14 @@ abstract class Repository
     /**
      * Prepara e executa uma consulta SQL, retornando o statement.
      *
-     * @param string $sql A consulta SQL a ser executada.
-     * @param array $params Os parâmetros para a consulta.
-     * @return PDOStatement
+     * @param  string  $sql  A consulta SQL a ser executada.
+     * @param  array  $params  Os parâmetros para a consulta.
      */
     protected function query(string $sql, array $params = []): PDOStatement
     {
         $statement = $this->pdo->prepare($sql);
         $statement->execute($params);
+
         return $statement;
     }
 
@@ -58,7 +54,7 @@ abstract class Repository
     {
         return $this->pdo->rollBack();
     }
-    
+
     /**
      * Verifica se uma transação está ativa.
      */

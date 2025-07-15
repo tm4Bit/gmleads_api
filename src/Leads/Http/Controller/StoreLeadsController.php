@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ovlk\GMLeads\Events\Http\Controller;
+namespace Ovlk\GMLeads\Leads\Http\Controller;
 
 use Core\Http\Controller\Controller;
-use Ovlk\GMLeads\Events\UseCase\StoreLeadsUseCase;
+use Ovlk\GMLeads\Leads\UseCase\StoreLeadsUseCase;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Log\LoggerInterface;
 
