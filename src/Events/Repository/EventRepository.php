@@ -45,11 +45,14 @@ class EventRepository extends Repository implements EventRepositoryInterface
             ->fetchAll();
     }
 
-    public function getHtmlTemplate(string $eventType): string
+    public function getHtmlTemplate(int $eventTypeId): string
     {
-        $sql = 'SELECT html FROM briefing WHERE tbl_clientes = :eventType';
-        return $this
-            ->query($sql, ['tableName' => $eventType])
+        $sql = 'SELECT html FROM c_tipos WHERE id = :eventType';
+
+        $eventType = $this
+            ->query($sql, ['eventType' => $eventTypeId])
             ->fetch();
+
+        return $eventType['html'];
     }
 }

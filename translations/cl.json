@@ -15,6 +15,7 @@
   "SERVER_ERROR": "Error al procesar la respuesta del servidor.",
   "CUSTOMER_SERVICE": "ATENCIÓN AL CLIENTE",
   "PRIVACY_POLICY": "POLÍTICA DE PRIVACIDAD",
+  "optin": "optin",
   "nome": "Nombre Completo",
   "snome": "Apellido(s)",
   "cel": "Celular (con código de área)",

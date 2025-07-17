@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use Core\Facade\Config;
 use Core\Facade\LoggerFactory;
 use DI\ContainerBuilder;
 use GuzzleHttp\Client as HttpClient;
 use Ovlk\GMLeads\Events\Repository\EventRepository;
 use Ovlk\GMLeads\Events\Repository\EventRepositoryInterface;
-use Ovlk\GMLeads\Events\Services\GitHubService;
+use Ovlk\GMLeads\Events\Services\GithubService;
+use Ovlk\GMLeads\Events\Services\GithubServiceInterface;
 use Ovlk\GMLeads\HealthCheck\HealthCheckRepository;
 use Ovlk\GMLeads\HealthCheck\HealthCheckRepositoryInterface;
 use Ovlk\GMLeads\Leads\Repository\LeadRepository;
@@ -21,7 +21,6 @@ use Ovlk\GMLeads\Leads\Services\Crm\LeadToCrmPayloadMapper;
 use Ovlk\GMLeads\Leads\Services\Crm\LeadToCrmPayloadMapperInterface;
 use Ovlk\GMLeads\Leads\Services\LeadDataMapper;
 use Ovlk\GMLeads\Leads\Services\LeadDataMapperInterface;
-use Ovlk\GMLeads\Services\GitHubServiceInterface;
 use Psr\Log\LoggerInterface;
 
 use function DI\autowire;
@@ -47,7 +46,7 @@ return function (ContainerBuilder $container) {
         CrmAuthenticatorInterface::class => autowire(CrmAuthenticator::class),
         LeadToCrmPayloadMapperInterface::class => autowire(LeadToCrmPayloadMapper::class),
         CrmApiClientInterface::class => autowire(CrmApiClient::class),
-        GitHubServiceInterface::class => autowire(GitHubService::class),
+        GithubServiceInterface::class => autowire(GithubService::class),
 
         // --- Data mapper ---
         LeadDataMapperInterface::class => autowire(LeadDataMapper::class),

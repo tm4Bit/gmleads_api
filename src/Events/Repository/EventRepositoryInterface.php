@@ -41,8 +41,8 @@ interface EventRepositoryInterface
     /**
      * Busca o template HTML de um evento.
      *
-     * @param  string  $eventType  O tipo de evento.
+     * @param  int  $eventTypeId  O id do tipo de evento.
      * @return string Retorna o template HTML.
      */
-    public function getHtmlTemplate(string $eventType): string;
+    public function getHtmlTemplate(int $eventTypeId): string;
 }
