@@ -90,7 +90,9 @@ foreach ($columns as $column) {
 		<div class="twelve columns">
 			<?php foreach ($formFields as $field): ?>
 				<div class="campo">
-					<label for="<?= htmlspecialchars($field['name']) ?>"><?= htmlspecialchars($field['label']) ?></label>
+					<label for="<?= htmlspecialchars($field['name']) ?>">
+						<?= htmlspecialchars($field['label']) ?><?= $field['required'] ? '*' : '' ?>
+					</label>
 					<br />
 					<?php
                         // Include partial based on field type
