@@ -1,3 +1,8 @@
+<?php
+/**
+ * @var string $img Image name
+ */
+?>
 <div class="container-fluid top" align="center">
-	<img src="../../img/logo-chevrolet.svg" data-aos="flip-right" />
+	<img src="../img/<?= $img ?>" data-aos="flip-right" />
 </div>
