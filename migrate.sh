@@ -26,7 +26,7 @@ echo -e "\n${YELLOW}󰥝 Iniciando a importação dos scripts SQL...${NC}"
 for sql_file in $(ls database/*.sql | sort -V); do
     if [ -f "$sql_file" ]; then
         echo "  󱦰 Importando: $sql_file"
-        docker-compose exec -T db mysql -uadmin -psecret gmleads_db < "$sql_file"
+        docker-compose exec -T db mysql --default-character-set=utf8mb4 -uadmin -psecret gmleads_db < "$sql_file"
     fi
 done
 
