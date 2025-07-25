@@ -29,7 +29,8 @@
 	],
 	"require-dev": {
 		"pestphp/pest": "^3.8",
-		"mockery/mockery": "^1.6"
+		"mockery/mockery": "^1.6",
+		"pestphp/pest-plugin-stressless": "^3.1"
 	},
 	"config": {
 		"allow-plugins": {
